@@ -1,3 +1,4 @@
+<!--  <li class=" nav-item-desktop"><button id="language-toggle" type="button" class="lang-toggle-btn" aria-label="Language Toggle">VI</button></li>-->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -9,21 +10,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-// <li class="nav-item-desktop nav-lang-toggle"><button id="language-toggle" type="button" class="lang-toggle-btn" aria-label="Language Toggle">VI</button></li>
+
 <body>
     <nav id="main-nav" class="nav-visible">
         <div class="nav-content nav-centered">
             <ul class="nav-menu">
-                <li class="nav-item-desktop"><a href="#" id="home-link" data-i18n="nav.home">Trang Chủ</a></li>
-                <li class="nav-item-desktop"><a href="#pricing" data-i18n="nav.pricing">Bảng Giá</a></li>
-                <li class="nav-item-desktop"><a href="#courses" data-i18n="nav.courses">Khóa Học</a></li>
-                <li class="nav-item-desktop"><a href="#" id="register-link" data-i18n="nav.register">Đăng Ký</a></li>
+                <li class="nav-item-desktop"><a href="#" id="home-link" data-i18n="nav.home">Home</a></li>
+                <li class="nav-item-desktop"><a href="#pricing" data-i18n="nav.pricing">Price</a></li>
+                <li class="nav-item-desktop"><a href="#courses" data-i18n="nav.courses">Courses</a></li>
+                <li class="nav-item-desktop"><a href="#" id="register-link" data-i18n="nav.register">Register</a></li>
             
                 <li class="nav-item-portfolio"><a href="https://www.littlekhim.online/" target="_blank" class="portfolio-link"><i class="fas fa-briefcase"></i> <span data-i18n="nav.portfolio">Portfolio</span></a></li>
+             
             </ul>
         </div>
+        <div class="nav-right ">
+               
+               
+        </div>
     </nav>
-
     <main id="main-content">
 
 
@@ -328,10 +333,10 @@
                 <div class="footer-section">
                     <div class="footer-title" data-i18n="footer.linksTitle">Liên Kết</div>
                     <div class="footer-links">
-                        <a href="/" data-i18n="footer.linkHome">Trang Chủ</a>
-                        <a href="#pricing" data-i18n="footer.linkPricing">Bảng Giá</a>
-                        <a href="#courses" data-i18n="footer.linkCourses">Khóa Học</a>
-                        <a href="#contact" data-i18n="footer.linkRegister">Đăng Ký</a>
+                        <a href="/" data-i18n="footer.linkHome">Home</a>
+                        <a href="#pricing" data-i18n="footer.linkPricing">Pricing</a>
+                        <a href="#courses" data-i18n="footer.linkCourses">Courses</a>
+                        <a href="#contact" data-i18n="footer.linkRegister">Register</a>
                         <a href="https://www.littlekhim.online/" target="_blank" data-i18n="footer.linkPortfolio">Portfolio</a>
                     </div>
                 </div>
@@ -551,10 +556,10 @@
     const translations = {
         vi: {
             'meta.title': 'Đào Tạo Lập Trình Lua - Khóa Học Lua Chuyên Nghiệp',
-            'nav.home': 'Trang Chủ',
-            'nav.pricing': 'Bảng Giá',
-            'nav.courses': 'Khóa Học',
-            'nav.register': 'Đăng Ký',
+            'nav.home': 'Home',
+            'nav.pricing': 'Pricing',
+            'nav.courses': 'Courses',
+            'nav.register': 'Register',
             'nav.portfolio': 'Portfolio',
             'hero.title': 'Đào Tạo Lập Trình Lua',
             'hero.subtitle': 'Học lập trình Lua chuyên nghiệp với giáo viên có 4+ năm kinh nghiệm',
@@ -1327,8 +1332,11 @@
                 ? (gameConfig.name.vi || gameConfig.name.en)
                 : gameConfig.name;
 
-            const thumbnailUrl = `https://thumbnails.roblox.com/v1/places/gameicons?placeIds=${gameId}&size=512x512&format=Png&isCircular=false`;
+           const thumbnailUrl = `https://thumbnails.roblox.com/v1/assets?assetIds=${gameId}&size=150x150&format=Png&isCircular=false&thumbnailType=AssetThumbnail`
 
+           const thumbRes = await fetch(thumbnailUrl);
+           const thumbData = await thumbRes.json();
+           const realThumb = thumbData.data?.[0]?.imageUrl || thumbnailUrl;
             try {
                 const response = await fetch(`https://games.roblox.com/v1/games?universeIds=${gameId}`);
                 if (response.ok) {
@@ -1338,7 +1346,7 @@
                         return {
                             id: gameId,
                             name: game.name || fallbackName,
-                            thumbnail: thumbnailUrl,
+                            thumbnail: realThumb,
                             playing: game.playing || 0,
                             visits: game.visiting || game.visits || 0,
                             url: `https://www.roblox.com/games/${gameId}/`
@@ -1399,13 +1407,12 @@
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toString();
     }
-
+setLanguage('vi');
     // Initialize dynamic content on load
-    // detectLocale();
     document.addEventListener('DOMContentLoaded', async () => {
         await loadSiteData();
         await loadGames();
-       
+       // detectLocale();
         initializeFAQ();
         updateCourseOptions();
         updateDisplayedPrices();

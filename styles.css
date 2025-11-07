@@ -73,12 +73,20 @@ nav.nav-hidden {
     gap: 0;
     position: relative;
 }
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 
 .logo, .order-btn {
     display: none;
 }
 
 .nav-menu {
+
+
     display: flex;
     gap: 1.8rem;
     background: rgba(255, 255, 255, 0.7);
@@ -122,7 +130,7 @@ nav.nav-hidden {
     background: rgba(255, 255, 255, 0.8);
     color: var(--accent-color);
     border-radius: 1rem;
-    padding: 0.25rem 0.9rem;
+    padding: 0.55rem 0.9rem;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -222,13 +230,17 @@ nav.nav-hidden {
 #dropdown-logout {
     color:var(--accent-color);
 }
+.main-lav {
+   justify-content: space-between; /* chia đều trái - giữa - phải */
 
+}
 main {
     padding-top: 70px;
     max-width: 1200px;
     margin: 0 auto;
     padding-left: 2rem;
     padding-right: 2rem;
+    justify-content: space-between; /* pushes left and right apart */
 }
 
 @media (max-width: 768px) {
@@ -1489,6 +1501,7 @@ h1 {
     }
     nav {
         padding: 1rem 0;
+        
     }
     .nav-menu {
         padding: 0.5rem 1rem;
