@@ -87,17 +87,7 @@
     },
     "tags": ["register", "sign up", "đăng ký", "process"]
   },
-  {
-    "question": {
-      "vi": "Có mã giảm giá không?",
-      "en": "Is there a discount code?"
-    },
-    "answer": {
-      "vi": "Có! Sử dụng mã \"HocVienLanDau\" để được giảm 10% cho khóa học đầu tiên. Áp dụng cho mọi gói khóa học.",
-      "en": "Yes! Use the code \"HocVienLanDau\" to get 10% off your first course. Applicable to all packages."
-    },
-    "tags": ["discount", "coupon", "giảm giá"]
-  },
+
   {
     "question": {
       "vi": "Tôi có thể học theo giờ thay vì khóa học không?",
