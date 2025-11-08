@@ -911,23 +911,43 @@
         
         // Get balance from server (to prevent F12 manipulation)
         async function getCurrentBalance() {
-            if (!currentUser) return 0;
+            if (!currentUser || !currentUser.email) {
+                console.warn('getCurrentBalance: No current user');
+                return userBalance || 0;
+            }
             
             try {
+                console.log('Fetching balance from server for:', currentUser.email);
                 const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(currentUser.email)}/balance`);
+                
                 if (response.ok) {
                     const data = await response.json();
+                    const serverBalance = data.balance || 0;
+                    console.log('Balance from server:', serverBalance);
+                    
                     // Update local balance
-                    userBalance = data.balance || 0;
+                    userBalance = serverBalance;
                     saveUserData();
+                    
+                    // Update UI
+                    const balanceEl = document.getElementById('user-balance');
+                    if (balanceEl) {
+                        balanceEl.textContent = formatCurrency(userBalance);
+                    }
+                    
                     return userBalance;
+                } else {
+                    console.warn('Failed to fetch balance, status:', response.status);
+                    const errorText = await response.text();
+                    console.warn('Error response:', errorText);
                 }
             } catch (error) {
                 console.error('Error fetching balance from server:', error);
             }
             
             // Fallback to local balance
-            return userBalance;
+            console.log('Using fallback balance from localStorage:', userBalance);
+            return userBalance || 0;
         }
         
         // Update balance on server
@@ -1327,7 +1347,15 @@
                 if (savedUser) {
                     currentUser = JSON.parse(savedUser);
                     userBalance = savedBalance ? parseFloat(savedBalance) : 0;
-                    showUserMenu();
+                    
+                    // Try to load balance from server
+                    getCurrentBalance().then(balance => {
+                        console.log('Balance loaded after localStorage check:', balance);
+                        showUserMenu();
+                    }).catch(error => {
+                        console.error('Error loading balance:', error);
+                        showUserMenu();
+                    });
                 } else {
                     showLoginButton();
                 }
@@ -1524,7 +1552,12 @@
             );
         }
         
-        function processTopUpRequest(amount) {
+        async function processTopUpRequest(amount) {
+            if (!currentUser || !currentUser.email) {
+                showNotification('Lỗi', 'Vui lòng đăng nhập lại!', 'error');
+                return;
+            }
+            
             // Save transaction to history
             const transaction = {
                 id: 'TXN-' + Date.now(),
@@ -1541,7 +1574,13 @@
             localStorage.setItem(`store_transactions_${currentUser.email}`, JSON.stringify(userTransactions));
             
             // Save to server (for admin to see)
-            saveTransactionToServer(transaction);
+            try {
+                await saveTransactionToServer(transaction);
+                console.log('Transaction saved to server:', transaction);
+            } catch (error) {
+                console.error('Error saving transaction to server:', error);
+                // Continue anyway - transaction is saved locally
+            }
             
             closeNotification();
             closeTopUpModal();
@@ -1556,20 +1595,33 @@
         
         // Save transaction to server
         async function saveTransactionToServer(transaction) {
-            if (!currentUser) return;
+            if (!currentUser || !currentUser.email) {
+                console.warn('Cannot save transaction: No current user');
+                return;
+            }
             
             try {
-                await fetch(`${API_BASE_URL}/transactions`, {
+                console.log('Saving transaction to server:', transaction);
+                const response = await fetch(`${API_BASE_URL}/transactions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...transaction,
                         userEmail: currentUser.email,
-                        userName: currentUser.name
+                        userName: currentUser.name || currentUser.email
                     })
                 });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Transaction saved successfully:', result);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to save transaction:', response.status, errorText);
+                }
             } catch (error) {
                 console.error('Error saving transaction to server:', error);
+                throw error; // Re-throw to let caller know it failed
             }
         }
         
@@ -1750,11 +1802,35 @@
                     sub: user.$id
                 };
                 
-                // Load existing balance or start with 0
-                const savedBalance = localStorage.getItem('store_balance');
-                userBalance = savedBalance ? parseFloat(savedBalance) : 0;
+                // Load balance from server first, then fallback to localStorage
+                try {
+                    const balanceResponse = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(user.email)}/balance`);
+                    if (balanceResponse.ok) {
+                        const balanceData = await balanceResponse.json();
+                        userBalance = balanceData.balance || 0;
+                        console.log('Balance loaded from server:', userBalance);
+                    } else {
+                        // Fallback to localStorage
+                        const savedBalance = localStorage.getItem('store_balance');
+                        userBalance = savedBalance ? parseFloat(savedBalance) : 0;
+                        console.log('Balance loaded from localStorage:', userBalance);
+                    }
+                } catch (error) {
+                    console.error('Error loading balance:', error);
+                    // Fallback to localStorage
+                    const savedBalance = localStorage.getItem('store_balance');
+                    userBalance = savedBalance ? parseFloat(savedBalance) : 0;
+                }
                 
                 saveUserData();
+                
+                // Update balance display immediately
+                const balanceEl = document.getElementById('user-balance');
+                if (balanceEl) {
+                    balanceEl.textContent = formatCurrency(userBalance);
+                    console.log('Balance displayed:', userBalance);
+                }
+                
                 showUserMenu();
                 
                 // Force refresh admin panel visibility after login
