@@ -255,6 +255,80 @@
                 </div>
             </div>
         </div>
+
+        <!-- Auto Robux Subscription Plans Modal -->
+        <div class="subscription-plans-modal-overlay" id="subscription-plans-modal" style="display: none;">
+            <div class="subscription-plans-modal-container">
+                <div class="subscription-plans-modal-header">
+                    <h2><i class="fas fa-sync-alt"></i> Chọn Gói Robux Tự Động</h2>
+                    <button class="subscription-plans-modal-close" id="subscription-plans-modal-close">&times;</button>
+                </div>
+                <div class="subscription-plans-modal-content">
+                    <p class="subscription-info">Dịch vụ cung cấp Robux liên tục mỗi ngày vào gamepass của bạn</p>
+                    <div class="subscription-plans-grid">
+                        <div class="subscription-plan-card" data-plan="100000" onclick="selectSubscriptionPlan(100000)">
+                            <div class="plan-header">
+                                <h3>Gói Cơ Bản</h3>
+                                <div class="plan-price">100,000₫<span>/tháng</span></div>
+                            </div>
+                            <div class="plan-features">
+                                <p><i class="fas fa-check"></i> Cung cấp Robux mỗi ngày</p>
+                                <p><i class="fas fa-check"></i> Tự động vào gamepass</p>
+                            </div>
+                        </div>
+                        <div class="subscription-plan-card plan-recommended" data-plan="300000" onclick="selectSubscriptionPlan(300000)">
+                            <div class="plan-badge">Phổ Biến</div>
+                            <div class="plan-header">
+                                <h3>Gói Tiêu Chuẩn</h3>
+                                <div class="plan-price">300,000₫<span>/tháng</span></div>
+                            </div>
+                            <div class="plan-features">
+                                <p><i class="fas fa-check"></i> Cung cấp Robux mỗi ngày</p>
+                                <p><i class="fas fa-check"></i> Tự động vào gamepass</p>
+                            </div>
+                        </div>
+                        <div class="subscription-plan-card" data-plan="500000" onclick="selectSubscriptionPlan(500000)">
+                            <div class="plan-header">
+                                <h3>Gói Cao Cấp</h3>
+                                <div class="plan-price">500,000₫<span>/tháng</span></div>
+                            </div>
+                            <div class="plan-features">
+                                <p><i class="fas fa-check"></i> Cung cấp Robux mỗi ngày</p>
+                                <p><i class="fas fa-check"></i> Tự động vào gamepass</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Confirmation Modal -->
+        <div class="subscription-confirm-modal-overlay" id="subscription-confirm-modal" style="display: none;">
+            <div class="subscription-confirm-modal-container">
+                <div class="subscription-confirm-modal-header">
+                    <h2><i class="fas fa-check-circle"></i> Xác Nhận Đăng Ký</h2>
+                    <button class="subscription-confirm-modal-close" id="subscription-confirm-modal-close">&times;</button>
+                </div>
+                <div class="subscription-confirm-modal-content">
+                    <div class="subscription-confirm-info" id="subscription-confirm-info">
+                        <!-- Info will be inserted here -->
+                    </div>
+                    <div class="subscription-auto-payment">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="auto-payment-checkbox" checked>
+                            <span>Tự động thanh toán hàng tháng</span>
+                        </label>
+                        <p class="auto-payment-note">Mỗi 30 ngày kể từ ngày đăng ký, nếu tài khoản có đủ tiền sẽ tự động trừ và tính tháng tiếp theo</p>
+                    </div>
+                    <div class="subscription-confirm-actions">
+                        <button class="subscription-confirm-btn" id="subscription-confirm-btn" onclick="confirmSubscription()">
+                            <i class="fas fa-check"></i> Xác Nhận Đăng Ký
+                        </button>
+                        <button class="subscription-cancel-btn" onclick="closeSubscriptionConfirmModal()">Hủy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Admin Panel Modal -->
         <div class="admin-modal-overlay" id="admin-modal" style="display: none;">
@@ -445,6 +519,16 @@
                 icon: "fas fa-tractor",
                 stock: 0,
                 stockDisplay: true
+            },
+            {
+                id: 'auto-robux',
+                category: 'robux',
+                name: { vi: "Robux Tự Động", en: "Auto Robux" },
+                description: { vi: "Dịch vụ cung cấp Robux tự động mỗi ngày vào gamepass của bạn", en: "Automatic Robux service delivered daily to your gamepass" },
+                price: 0,
+                icon: "fas fa-sync-alt",
+                isAutoRobux: true,
+                stockDisplay: false
             }
         ];
         
@@ -739,6 +823,25 @@
                                 </div>
                                 <div class="product-stock-row">
                                     <span class="product-stock">Còn lại: ${stockText}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (product.isAutoRobux) {
+                    return `
+                        <div class="product-card auto-robux-card clickable-card" data-category="${product.category}" onclick="openAutoRobuxModal()">
+                            <div class="product-header">
+                                <div class="product-icon">
+                                    <i class="${product.icon}"></i>
+                                </div>
+                                <h3 class="product-name">${name}</h3>
+                            </div>
+                            <div class="product-content">
+                                <p class="product-description">${description}</p>
+                                <div class="product-info-row">
+                                    <span class="product-badge"><i class="fas fa-check-circle"></i> Cung cấp mỗi ngày</span>
                                 </div>
                             </div>
                         </div>
@@ -1043,16 +1146,16 @@
                     return;
                 }
                 
-                const robuxProduct = products.find(p => p.id === 'robux');
-                cart.push({
-                    id: 'robux-' + Date.now(),
-                    name: robuxProduct.name,
-                    price: price,
-                    quantity: 1,
-                    robuxAmount: robuxAmount,
-                    isCustomRobux: true
-                });
-                updateCart();
+            const robuxProduct = products.find(p => p.id === 'robux');
+            cart.push({
+                id: 'robux-' + Date.now(),
+                name: robuxProduct.name,
+                price: price,
+                quantity: 1,
+                robuxAmount: robuxAmount,
+                isCustomRobux: true
+            });
+            updateCart();
             }).catch(error => {
                 console.error('Error checking balance:', error);
                 // Fallback: add to cart anyway
@@ -1296,8 +1399,8 @@
                 
                 // Save order to server
                 await saveOrderToServer(orderData);
-                
-                // Send Discord webhook
+            
+            // Send Discord webhook
                 sendDiscordWebhook(orderCode, cartItems, total);
                 
                 // Clear cart
@@ -1306,8 +1409,8 @@
                 
                 // Show order modal
                 const orderModal = document.getElementById('order-modal');
-                orderModal.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
+            orderModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
                 
             } catch (error) {
                 console.error('Error processing order:', error);
@@ -1399,23 +1502,23 @@
             
             // If no Appwrite session, check localStorage
             if (!currentUser) {
-                const savedUser = localStorage.getItem('store_user');
-                const savedBalance = localStorage.getItem('store_balance');
-                
-                if (savedUser) {
-                    currentUser = JSON.parse(savedUser);
-                    userBalance = savedBalance ? parseFloat(savedBalance) : 0;
+            const savedUser = localStorage.getItem('store_user');
+            const savedBalance = localStorage.getItem('store_balance');
+            
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                userBalance = savedBalance ? parseFloat(savedBalance) : 0;
                     
                     // Try to load balance from server
                     getCurrentBalance().then(balance => {
                         console.log('Balance loaded after localStorage check:', balance);
-                        showUserMenu();
+                showUserMenu();
                     }).catch(error => {
                         console.error('Error loading balance:', error);
                         showUserMenu();
                     });
-                } else {
-                    showLoginButton();
+            } else {
+                showLoginButton();
                 }
             }
             
@@ -1496,7 +1599,7 @@
                 signinContainer.style.display = 'flex'; // Use flex to match CSS
                 // Ensure button is rendered (only if not already rendered)
                 if (!buttonsRendered) {
-                    initializeGoogleSignIn();
+            initializeGoogleSignIn();
                 }
             }
         }
@@ -1704,8 +1807,8 @@
                 const initialized = initializeAppwrite();
                 if (!initialized) {
                     // Wait for Appwrite SDK to load
-                    setTimeout(initializeGoogleSignIn, 100);
-                    return;
+                setTimeout(initializeGoogleSignIn, 100);
+                return;
                 }
             }
             
@@ -1852,8 +1955,8 @@
             
             try {
                 const user = await account.get();
-                
-                currentUser = {
+            
+            currentUser = {
                     email: user.email,
                     name: user.name || user.email,
                     picture: '', // Appwrite doesn't provide picture by default
@@ -1878,8 +1981,8 @@
                         console.log('Balance loaded from server:', userBalance);
                     } else {
                         // Fallback to localStorage
-                        const savedBalance = localStorage.getItem('store_balance');
-                        userBalance = savedBalance ? parseFloat(savedBalance) : 0;
+            const savedBalance = localStorage.getItem('store_balance');
+            userBalance = savedBalance ? parseFloat(savedBalance) : 0;
                         console.log('Balance loaded from localStorage:', userBalance);
                     }
                 } catch (error) {
@@ -1888,8 +1991,8 @@
                     const savedBalance = localStorage.getItem('store_balance');
                     userBalance = savedBalance ? parseFloat(savedBalance) : 0;
                 }
-                
-                saveUserData();
+            
+            saveUserData();
                 
                 // Update balance display immediately
                 const balanceEl = document.getElementById('user-balance');
@@ -1898,7 +2001,7 @@
                     console.log('Balance displayed:', userBalance);
                 }
                 
-                showUserMenu();
+            showUserMenu();
                 
                 // Force refresh admin panel visibility after login
                 setTimeout(() => {
@@ -1921,7 +2024,10 @@
                     }
                 }, 200);
                 
-                document.getElementById('login-modal').style.display = 'none';
+                // Check for auto-renewal subscriptions
+                checkAutoRenewalSubscriptions();
+                
+            document.getElementById('login-modal').style.display = 'none';
             } catch (error) {
                 // User is not logged in, show login button
                 console.log('User not logged in');
@@ -2542,6 +2648,221 @@
             }
         }
         
+        // Auto Robux Subscription Functions
+        let selectedPlanPrice = null;
+        
+        function openAutoRobuxModal() {
+            checkLoginBeforeAction(() => {
+                // Check for pending transactions
+                if (hasPendingTransaction()) {
+                    showNotification(
+                        'Giao dịch đang chờ xử lý',
+                        'Bạn có giao dịch nạp tiền đang chờ xử lý. Vui lòng đợi giao dịch được xác nhận hoặc hủy trước khi đăng ký gói.',
+                        'warning',
+                        {
+                            buttons: [
+                                { text: 'Xem lịch sử', onclick: 'closeNotification(); openTransactionHistory();', class: 'notification-btn-primary' },
+                                { text: 'Đóng', onclick: 'closeNotification()', class: '' }
+                            ]
+                        }
+                    );
+                    return;
+                }
+                
+                const modal = document.getElementById('subscription-plans-modal');
+                modal.style.display = 'flex';
+            });
+        }
+        
+        function closeSubscriptionPlansModal() {
+            const modal = document.getElementById('subscription-plans-modal');
+            modal.style.display = 'none';
+        }
+        
+        async function selectSubscriptionPlan(price) {
+            selectedPlanPrice = price;
+            
+            // Get current balance
+            const currentBalance = await getCurrentBalance();
+            
+            if (currentBalance < price) {
+                const shortage = price - currentBalance;
+                closeSubscriptionPlansModal();
+                showNotification(
+                    'Số tiền không đủ',
+                    `Số tiền hiện có: ${formatCurrency(currentBalance)}\n` +
+                    `Giá gói: ${formatCurrency(price)}\n` +
+                    `Thiếu: ${formatCurrency(shortage)}\n\n` +
+                    `Vui lòng nạp thêm tiền để tiếp tục.`,
+                    'error',
+                    {
+                        buttons: [
+                            { text: 'Nạp tiền', onclick: 'closeNotification(); openTopUpModal();', class: 'notification-btn-primary' },
+                            { text: 'Đóng', onclick: 'closeNotification()', class: '' }
+                        ]
+                    }
+                );
+                return;
+            }
+            
+            // Show confirmation modal
+            closeSubscriptionPlansModal();
+            showSubscriptionConfirmModal(price, currentBalance);
+        }
+        
+        function showSubscriptionConfirmModal(price, currentBalance) {
+            const modal = document.getElementById('subscription-confirm-modal');
+            const infoDiv = document.getElementById('subscription-confirm-info');
+            
+            const planName = price === 100000 ? 'Gói Cơ Bản' : price === 300000 ? 'Gói Tiêu Chuẩn' : 'Gói Cao Cấp';
+            
+            infoDiv.innerHTML = `
+                <div class="subscription-confirm-details">
+                    <div class="confirm-detail-item">
+                        <span class="detail-label">Gói đăng ký:</span>
+                        <span class="detail-value">${planName}</span>
+                    </div>
+                    <div class="confirm-detail-item">
+                        <span class="detail-label">Giá:</span>
+                        <span class="detail-value">${formatCurrency(price)}/tháng</span>
+                    </div>
+                    <div class="confirm-detail-item">
+                        <span class="detail-label">Số tiền hiện tại:</span>
+                        <span class="detail-value">${formatCurrency(currentBalance)}</span>
+                    </div>
+                    <div class="confirm-detail-item">
+                        <span class="detail-label">Số dư sau khi đăng ký:</span>
+                        <span class="detail-value">${formatCurrency(currentBalance - price)}</span>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeSubscriptionConfirmModal() {
+            const modal = document.getElementById('subscription-confirm-modal');
+            modal.style.display = 'none';
+            selectedPlanPrice = null;
+        }
+        
+        async function confirmSubscription() {
+            if (!selectedPlanPrice) {
+                showNotification('Lỗi', 'Vui lòng chọn gói trước!', 'error');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.email) {
+                showNotification('Lỗi', 'Vui lòng đăng nhập trước!', 'error');
+                return;
+            }
+            
+            const autoPayment = document.getElementById('auto-payment-checkbox').checked;
+            
+            // Get latest balance
+            const currentBalance = await getCurrentBalance();
+            
+            if (currentBalance < selectedPlanPrice) {
+                closeSubscriptionConfirmModal();
+                showNotification(
+                    'Số tiền không đủ',
+                    `Số tiền hiện có không đủ để đăng ký gói này.`,
+                    'error'
+                );
+                return;
+            }
+            
+            try {
+                // Save subscription to server
+                const response = await fetch(`${API_BASE_URL}/subscriptions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: currentUser.email,
+                        planPrice: selectedPlanPrice,
+                        autoPayment: autoPayment,
+                        startDate: new Date().toISOString(),
+                        nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create subscription');
+                }
+                
+                // Deduct balance
+                const newBalance = currentBalance - selectedPlanPrice;
+                await updateBalanceOnServer(newBalance);
+                userBalance = newBalance;
+            saveUserData();
+                
+                // Update UI
+                const balanceEl = document.getElementById('user-balance');
+                if (balanceEl) {
+                    balanceEl.textContent = formatCurrency(userBalance);
+                }
+                
+                // Save transaction
+                await saveTransactionToServer({
+                    type: 'subscription',
+                    amount: selectedPlanPrice,
+                    status: 'completed',
+                    description: `Đăng ký gói Robux tự động ${formatCurrency(selectedPlanPrice)}/tháng`,
+                    createdAt: new Date().toISOString()
+                });
+                
+                closeSubscriptionConfirmModal();
+                showNotification(
+                    'Đăng ký thành công!',
+                    `Bạn đã đăng ký gói Robux tự động thành công!\n\n` +
+                    `Gói: ${formatCurrency(selectedPlanPrice)}/tháng\n` +
+                    `Tự động thanh toán: ${autoPayment ? 'Có' : 'Không'}\n\n` +
+                    `Robux sẽ được cung cấp mỗi ngày vào gamepass của bạn.`,
+                    'success',
+                    { timeout: 5000 }
+                );
+                
+                selectedPlanPrice = null;
+            } catch (error) {
+                console.error('Error creating subscription:', error);
+                showNotification('Lỗi', 'Không thể đăng ký gói. Vui lòng thử lại!', 'error');
+            }
+        }
+        
+        // Check and process auto-renewal subscriptions
+        async function checkAutoRenewalSubscriptions() {
+            if (!currentUser || !currentUser.email) return;
+            
+            try {
+                const email = encodeURIComponent(currentUser.email);
+                const response = await fetch(`${API_BASE_URL}/subscriptions/check-renewal?email=${email}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.renewed) {
+                        showNotification(
+                            'Gia hạn tự động',
+                            `Gói Robux tự động của bạn đã được gia hạn tự động!\n\n` +
+                            `Số tiền đã trừ: ${formatCurrency(data.amount)}\n` +
+                            `Số dư còn lại: ${formatCurrency(data.newBalance)}`,
+                            'success',
+                            { timeout: 5000 }
+                        );
+                        
+                        // Update balance in UI
+                        userBalance = data.newBalance;
+                        saveUserData();
+                        const balanceEl = document.getElementById('user-balance');
+                        if (balanceEl) {
+                            balanceEl.textContent = formatCurrency(userBalance);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking auto-renewal:', error);
+            }
+        }
+        
         // User menu toggle
         function toggleUserMenu() {
             const dropdown = document.getElementById('user-dropdown');
@@ -2668,6 +2989,29 @@
             document.getElementById('cart-sidebar').addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeCart();
+                }
+            });
+            
+            // Subscription modals event listeners
+            const subscriptionPlansModalClose = document.getElementById('subscription-plans-modal-close');
+            if (subscriptionPlansModalClose) {
+                subscriptionPlansModalClose.addEventListener('click', closeSubscriptionPlansModal);
+            }
+            
+            const subscriptionConfirmModalClose = document.getElementById('subscription-confirm-modal-close');
+            if (subscriptionConfirmModalClose) {
+                subscriptionConfirmModalClose.addEventListener('click', closeSubscriptionConfirmModal);
+            }
+            
+            document.getElementById('subscription-plans-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeSubscriptionPlansModal();
+                }
+            });
+            
+            document.getElementById('subscription-confirm-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeSubscriptionConfirmModal();
                 }
             });
         });
