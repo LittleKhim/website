@@ -86,6 +86,9 @@
                     <button class="user-dropdown-item" id="settings-btn">
                         <i class="fas fa-cog"></i> Cài Đặt
                     </button>
+                    <button class="user-dropdown-item" id="admin-panel-btn" style="display: none;">
+                        <i class="fas fa-shield-alt"></i> Admin Panel
+                    </button>
                     <button class="user-dropdown-item" id="logout-btn">
                         <i class="fas fa-sign-out-alt"></i> Đăng Xuất
                     </button>
@@ -175,9 +178,9 @@
                             </div>
                         </div>
                         <div class="topup-bank-info">
-                            <p><strong>Ngân hàng:</strong> <span id="topup-bank-name">Vietcombank</span></p>
-                            <p><strong>Số tài khoản:</strong> <span id="topup-account-number">1234567890</span></p>
-                            <p><strong>Chủ tài khoản:</strong> <span id="topup-account-name">NGUYEN VAN A</span></p>
+                            <p><strong>Ngân hàng:</strong> <span id="topup-bank-name">MBBANK</span></p>
+                            <p><strong>Số tài khoản:</strong> <span id="topup-account-number">0349517085</span></p>
+                            <p><strong>Chủ tài khoản:</strong> <span id="topup-account-name">DUONG GIA KHIEM</span></p>
                         </div>
                         <div class="topup-random-info">
                             <h4>Thông tin xác nhận (bắt buộc):</h4>
@@ -201,6 +204,39 @@
                     <h2>Đăng Nhập Để Tiếp Tục</h2>
                     <p>Vui lòng đăng nhập bằng Google để mua hàng</p>
                     <div id="google-signin-modal"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel Modal -->
+        <div class="admin-modal-overlay" id="admin-modal" style="display: none;">
+            <div class="admin-modal-container">
+                <div class="admin-modal-header">
+                    <h2><i class="fas fa-shield-alt"></i> Admin Panel</h2>
+                    <button class="admin-modal-close" id="admin-modal-close">&times;</button>
+                </div>
+                <div class="admin-modal-content">
+                    <div class="admin-tabs">
+                        <button class="admin-tab active" data-tab="orders">Đơn Hàng</button>
+                        <button class="admin-tab" data-tab="users">Quản Lý Tiền</button>
+                    </div>
+                    
+                    <!-- Orders Tab -->
+                    <div class="admin-tab-content active" id="admin-orders-tab">
+                        <div class="admin-orders-list" id="admin-orders-list">
+                            <!-- Orders will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Users Tab -->
+                    <div class="admin-tab-content" id="admin-users-tab">
+                        <div class="admin-add-money">
+                            <h3>Thêm Tiền Cho User</h3>
+                            <input type="email" id="admin-user-email" placeholder="Email của user">
+                            <input type="number" id="admin-amount" placeholder="Số tiền (VND)">
+                            <button class="admin-btn" onclick="adminAddMoney()">Thêm Tiền</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -370,8 +406,20 @@
             bankName: 'MBBANK',
             accountNumber: '866613102008',
             accountName: 'DUONG GIA KHIEM',
-            qrCodeUrl: 'https://via.placeholder.com/300x300?text=QR+Code' // Replace with your QR code image URL
+            // Get direct image link from ImgBB: Right-click image on https://ibb.co/YFSCMw0J and "Copy image address"
+            qrCodeUrl: 'https://i.ibb.co/YFSCMw0J/qr-code.jpg' // Update with direct link from ImgBB if this doesn't work
         };
+        
+        // Admin configuration
+        const ADMIN_EMAIL = 'dggktok@gmail.com';
+        
+        // Store orders for admin management
+        let allOrders = JSON.parse(localStorage.getItem('store_orders') || '[]');
+        
+        // Check if current user is admin
+        function isAdmin() {
+            return currentUser && currentUser.email === ADMIN_EMAIL;
+        }
 
         let currentLanguage = 'vi';
         const exchangeRate = 24000;
@@ -892,6 +940,7 @@
         function showUserMenu() {
             const userMenuContainer = document.getElementById('user-menu-container');
             const signinContainer = document.getElementById('google-signin-container');
+            const adminBtn = document.getElementById('admin-panel-btn');
             
             if (userMenuContainer) userMenuContainer.style.display = 'block';
             if (signinContainer) signinContainer.style.display = 'none';
@@ -900,6 +949,11 @@
             const userBalanceEl = document.getElementById('user-balance');
             if (userNameEl) userNameEl.textContent = currentUser.name || currentUser.email;
             if (userBalanceEl) userBalanceEl.textContent = formatCurrency(userBalance);
+            
+            // Show admin button if user is admin
+            if (adminBtn) {
+                adminBtn.style.display = isAdmin() ? 'block' : 'none';
+            }
         }
         
         function showLoginButton() {
@@ -1171,6 +1225,184 @@
             }
         }
         
+        // Admin Panel Functions
+        function openAdminPanel() {
+            if (!isAdmin()) {
+                alert('Bạn không có quyền truy cập Admin Panel!');
+                return;
+            }
+            document.getElementById('admin-modal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            loadAdminOrders();
+        }
+        
+        function closeAdminPanel() {
+            document.getElementById('admin-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        
+        function loadAdminOrders() {
+            const ordersList = document.getElementById('admin-orders-list');
+            if (!ordersList) return;
+            
+            // Sort orders by date (newest first)
+            const sortedOrders = [...allOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            if (sortedOrders.length === 0) {
+                ordersList.innerHTML = '<p style="text-align: center; padding: 2rem; color: #999;">Chưa có đơn hàng nào</p>';
+                return;
+            }
+            
+            ordersList.innerHTML = sortedOrders.map(order => {
+                const statusClass = {
+                    'pending': 'order-status-pending',
+                    'paid': 'order-status-paid',
+                    'cancelled': 'order-status-cancelled'
+                }[order.status] || '';
+                
+                const statusText = {
+                    'pending': 'Chờ thanh toán',
+                    'paid': 'Đã thanh toán',
+                    'cancelled': 'Đã hủy'
+                }[order.status] || order.status;
+                
+                const itemsHtml = order.items.map(item => 
+                    `<div>${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}</div>`
+                ).join('');
+                
+                return `
+                    <div class="admin-order-item">
+                        <div class="admin-order-header">
+                            <div>
+                                <strong>Mã đơn: ${order.code}</strong>
+                                <div style="font-size: 0.9rem; color: #666; margin-top: 0.25rem;">
+                                    ${order.userName} (${order.userEmail})
+                                </div>
+                            </div>
+                            <span class="order-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="admin-order-items">${itemsHtml}</div>
+                        <div class="admin-order-footer">
+                            <strong>Tổng: ${formatCurrency(order.total)}</strong>
+                            <div class="admin-order-actions">
+                                ${order.status === 'pending' ? `
+                                    <button class="admin-btn-small admin-btn-success" onclick="adminAcceptPayment('${order.code}')">
+                                        <i class="fas fa-check"></i> Xác nhận thanh toán
+                                    </button>
+                                    <button class="admin-btn-small admin-btn-danger" onclick="adminCancelPayment('${order.code}')">
+                                        <i class="fas fa-times"></i> Hủy đơn
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
+                            ${new Date(order.createdAt).toLocaleString('vi-VN')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function adminAcceptPayment(orderCode) {
+            if (!isAdmin()) {
+                alert('Bạn không có quyền!');
+                return;
+            }
+            
+            if (!confirm('Xác nhận thanh toán cho đơn hàng ' + orderCode + '?')) {
+                return;
+            }
+            
+            const order = allOrders.find(o => o.code === orderCode);
+            if (!order) {
+                alert('Không tìm thấy đơn hàng!');
+                return;
+            }
+            
+            order.status = 'paid';
+            order.updatedAt = new Date().toISOString();
+            localStorage.setItem('store_orders', JSON.stringify(allOrders));
+            
+            alert('Đã xác nhận thanh toán!');
+            loadAdminOrders();
+        }
+        
+        function adminCancelPayment(orderCode) {
+            if (!isAdmin()) {
+                alert('Bạn không có quyền!');
+                return;
+            }
+            
+            if (!confirm('Hủy đơn hàng ' + orderCode + '?')) {
+                return;
+            }
+            
+            const order = allOrders.find(o => o.code === orderCode);
+            if (!order) {
+                alert('Không tìm thấy đơn hàng!');
+                return;
+            }
+            
+            order.status = 'cancelled';
+            order.updatedAt = new Date().toISOString();
+            localStorage.setItem('store_orders', JSON.stringify(allOrders));
+            
+            alert('Đã hủy đơn hàng!');
+            loadAdminOrders();
+        }
+        
+        function adminAddMoney() {
+            if (!isAdmin()) {
+                alert('Bạn không có quyền!');
+                return;
+            }
+            
+            const email = document.getElementById('admin-user-email').value.trim();
+            const amount = parseFloat(document.getElementById('admin-amount').value);
+            
+            if (!email || !amount || amount <= 0) {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+                return;
+            }
+            
+            // Get user balance from localStorage (in real app, this would be from database)
+            const userKey = `store_balance_${email}`;
+            const currentBalance = parseFloat(localStorage.getItem(userKey) || '0');
+            const newBalance = currentBalance + amount;
+            
+            localStorage.setItem(userKey, newBalance.toString());
+            
+            // If this is the current user, update their balance
+            if (currentUser && currentUser.email === email) {
+                userBalance = newBalance;
+                document.getElementById('user-balance').textContent = formatCurrency(userBalance);
+                saveUserData();
+            }
+            
+            alert(`Đã thêm ${formatCurrency(amount)} cho ${email}\nSố dư mới: ${formatCurrency(newBalance)}`);
+            document.getElementById('admin-user-email').value = '';
+            document.getElementById('admin-amount').value = '';
+        }
+        
+        // Admin tab switching
+        function initAdminTabs() {
+            document.querySelectorAll('.admin-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    
+                    // Update tab buttons
+                    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update tab content
+                    document.querySelectorAll('.admin-tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(`admin-${tabName}-tab`).classList.add('active');
+                });
+            });
+        }
+        
         // User menu toggle
         function toggleUserMenu() {
             const dropdown = document.getElementById('user-dropdown');
@@ -1253,6 +1485,17 @@
             document.getElementById('settings-btn').addEventListener('click', () => {
                 alert('Tính năng cài đặt đang được phát triển');
             });
+            
+            // Admin panel event listeners
+            const adminPanelBtn = document.getElementById('admin-panel-btn');
+            if (adminPanelBtn) {
+                adminPanelBtn.addEventListener('click', openAdminPanel);
+            }
+            const adminModalClose = document.getElementById('admin-modal-close');
+            if (adminModalClose) {
+                adminModalClose.addEventListener('click', closeAdminPanel);
+            }
+            initAdminTabs();
             
             // Close modals when clicking outside
             document.getElementById('order-modal').addEventListener('click', function(e) {
