@@ -20,6 +20,23 @@
         const APPWRITE_ENDPOINT = 'https://sgp.cloud.appwrite.io/v1';
         const APPWRITE_PROJECT_ID = '690ec5bf00043292a7e0';
         
+        // Production domain
+        const PRODUCTION_DOMAIN = 'https://www.thelazy.store';
+        
+        // Determine base URL for OAuth redirects
+        // Use production domain if running on thelazy.store, otherwise use localhost
+        let baseUrl;
+        if (window.location.hostname === 'www.thelazy.store' || window.location.hostname === 'thelazy.store') {
+            baseUrl = PRODUCTION_DOMAIN;
+        } else if (window.location.protocol === 'file:') {
+            // Development: use localhost with detected port
+            const port = window.location.port || '5173';
+            baseUrl = `http://localhost:${port}`;
+        } else {
+            // Development: use current origin
+            baseUrl = window.location.origin;
+        }
+        
         // Initialize Appwrite client and account
         const appwriteClient = new Client()
             .setEndpoint(APPWRITE_ENDPOINT)
@@ -36,8 +53,13 @@
             account: appwriteAccount
         };
         
+        // Expose base URL for OAuth redirects
+        window.OAUTH_BASE_URL = baseUrl;
+        
         window.appwriteSDKLoaded = true;
         console.log('Appwrite SDK loaded successfully using ES modules');
+        console.log('OAuth Base URL:', baseUrl);
+        console.log('Environment:', window.location.hostname === 'www.thelazy.store' || window.location.hostname === 'thelazy.store' ? 'Production' : 'Development');
     </script>
 </head>
 
@@ -1063,20 +1085,47 @@
                 // Get Appwrite SDK reference
                 const AppwriteSDK = window.AppwriteSDK;
                 
-                // Get current URL for redirect (must be HTTP/HTTPS)
-                const successUrl = window.location.origin + window.location.pathname;
-                const failureUrl = window.location.origin + window.location.pathname + '?error=auth_failed';
+                // Get base URL (production domain or localhost for development)
+                let baseUrl = window.OAUTH_BASE_URL;
+                
+                // Fallback: determine base URL if not set
+                if (!baseUrl) {
+                    if (window.location.hostname === 'www.thelazy.store' || window.location.hostname === 'thelazy.store') {
+                        baseUrl = 'https://www.thelazy.store';
+                    } else if (window.location.protocol === 'file:') {
+                        const port = window.location.port || '5173';
+                        baseUrl = `http://localhost:${port}`;
+                    } else {
+                        baseUrl = window.location.origin;
+                    }
+                }
+                
+                // Build OAuth redirect URLs
+                const successUrl = baseUrl + window.location.pathname;
+                const failureUrl = baseUrl + window.location.pathname + '?error=auth_failed';
                 
                 // Validate URLs
                 if (!successUrl.startsWith('http://') && !successUrl.startsWith('https://')) {
-                    alert('⚠️ URL không hợp lệ: ' + successUrl + '\n\nVui lòng chạy website qua web server (localhost).');
+                    alert('⚠️ URL không hợp lệ: ' + successUrl + '\n\nVui lòng chạy website qua web server (localhost) hoặc trên domain thelazy.store.');
                     return;
                 }
                 
                 console.log('Initiating Google OAuth with:', {
                     successUrl: successUrl,
-                    failureUrl: failureUrl
+                    failureUrl: failureUrl,
+                    baseUrl: baseUrl,
+                    environment: baseUrl.includes('thelazy.store') ? 'Production' : 'Development'
                 });
+                
+                // Important: Make sure these URLs are registered in:
+                // 1. Appwrite Console → Settings → Platforms
+                //    - Production: Add https://www.thelazy.store
+                //    - Development: Add localhost with your port
+                // 2. Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs → Authorized redirect URIs
+                //    Add: https://sgp.cloud.appwrite.io/v1/account/sessions/oauth2/google
+                console.log('⚠️ IMPORTANT: Make sure these URLs are registered:');
+                console.log('   Appwrite Platform:', successUrl);
+                console.log('   Google OAuth Redirect URI:', 'https://sgp.cloud.appwrite.io/v1/account/sessions/oauth2/google');
                 
                 // Create OAuth2 session with Google
                 account.createOAuth2Session(
